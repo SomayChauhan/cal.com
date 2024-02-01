@@ -410,6 +410,12 @@ const SettingsSidebarContainer = ({
                                   textClassNames="px-3 text-emphasis font-medium text-sm"
                                   disableChevron
                                 />
+                                <VerticalTabItem
+                                  name={t("attributes")}
+                                  href={`/settings/teams/${team.id}/attributes`}
+                                  textClassNames="px-3 text-emphasis font-medium text-sm"
+                                  disableChevron
+                                />
                                 {(team.role === MembershipRole.OWNER ||
                                   team.role === MembershipRole.ADMIN ||
                                   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
