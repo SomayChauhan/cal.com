@@ -2244,7 +2244,13 @@
   "show_more": "Show more",
   "send_booker_to": "Send Booker to",
   "attributes": "Attributes",
+  "attributes_description": "Add custom attributes for your team members",
   "add_attributes": "Add attributes",
-  "add_attributes_description": "Add custom attributes for your team members",
+  "new_attributes": "New attributes",
+  "add_attributes_description": "Create attributes to ....",
+  "single_select": "Single-Select",
+  "multi_select": "Multi-Select",
+  "relationship_people": "Relationship (People)",
+  "relationship_teams": "Relationship (Teams)",
   "ADD_NEW_STRINGS_ABOVE_THIS_LINE_TO_PREVENT_MERGE_CONFLICTS": "↑↑↑↑↑↑↑↑↑↑↑↑↑ Add your new strings above here ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑"
 }
