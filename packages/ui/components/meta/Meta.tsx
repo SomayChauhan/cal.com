@@ -6,7 +6,7 @@ import { APP_NAME } from "@calcom/lib/constants";
 
 type MetaType = {
   title: string;
-  description: string;
+  description?: string;
   backButton?: boolean;
   CTA?: ReactNode;
   borderInShellHeader?: boolean;

@@ -82,7 +82,7 @@ function AttributesList(props: AttributesListProps) {
   );
 }
 
-const AttributesView = () => {
+const AttributesListView = () => {
   const searchParams = useCompatSearchParams();
   const { t, i18n } = useLocale();
 
@@ -229,6 +229,6 @@ const AttributesView = () => {
   );
 };
 
-AttributesView.getLayout = getLayout;
+AttributesListView.getLayout = getLayout;
 
-export default AttributesView;
+export default AttributesListView;
