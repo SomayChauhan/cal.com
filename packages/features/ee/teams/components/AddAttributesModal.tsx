@@ -2,36 +2,14 @@ import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { AttributeType } from "@calcom/prisma/enums";
-import type { RouterOutputs } from "@calcom/trpc";
-import { trpc } from "@calcom/trpc";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  Form,
-  Label,
-  showToast,
-  Select,
-  TextField,
-} from "@calcom/ui";
-
-import type { PendingMember } from "../lib/types";
+import { AttributeType } from "@calcom/prisma/zod-utils";
+import { Button, Dialog, DialogContent, DialogFooter, Form, Label, Select, TextField } from "@calcom/ui";
 
 type AddAttributesModalProps = {
   isOpen: boolean;
-  justEmailInvites?: boolean;
   onExit: () => void;
-  orgMembers?: RouterOutputs["viewer"]["organizations"]["getMembers"];
   onSubmit: (values: AddAttributesForm, resetFields: () => void) => void;
-  onSettingsOpen?: () => void;
-  teamId: number;
-  members?: PendingMember[];
-  token?: string;
   isPending?: boolean;
-  disableCopyLink?: boolean;
-  isOrg?: boolean;
 };
 
 export interface AddAttributesForm {
@@ -41,17 +19,6 @@ export interface AddAttributesForm {
 
 export default function AddAttributesModal(props: AddAttributesModalProps) {
   const { t } = useLocale();
-  const trpcContext = trpc.useContext();
-
-  const createInviteMutation = trpc.viewer.teams.createInvite.useMutation({
-    async onSuccess({ inviteLink }) {
-      trpcContext.viewer.teams.get.invalidate();
-      trpcContext.viewer.teams.list.invalidate();
-    },
-    onError: (error) => {
-      showToast(error.message, "error");
-    },
-  });
 
   const options = useMemo(
     () => [
@@ -128,7 +95,7 @@ export default function AddAttributesModal(props: AddAttributesModalProps) {
               {t("cancel")}
             </Button>
             <Button
-              loading={props.isPending || createInviteMutation.isPending}
+              loading={props.isPending}
               type="submit"
               color="primary"
               className="me-2 ms-2"

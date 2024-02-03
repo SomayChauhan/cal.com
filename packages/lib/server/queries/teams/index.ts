@@ -117,6 +117,7 @@ export async function getTeamWithMembers(args: {
       },
       theme: true,
       brandColor: true,
+      attributes: true,
       darkBrandColor: true,
       eventTypes: {
         where: {

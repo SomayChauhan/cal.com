@@ -3,6 +3,7 @@ import { importHandler, router } from "../../../trpc";
 import { ZAcceptOrLeaveInputSchema } from "./acceptOrLeave.schema";
 import { ZChangeMemberRoleInputSchema } from "./changeMemberRole.schema";
 import { ZCreateInputSchema } from "./create.schema";
+import { ZCreateAttributeInputSchema } from "./createAttribute.schema";
 import { ZCreateInviteInputSchema } from "./createInvite.schema";
 import { ZDeleteInputSchema } from "./delete.schema";
 import { ZDeleteInviteInputSchema } from "./deleteInvite.schema";
@@ -151,6 +152,13 @@ export const viewerTeamsRouter = router({
     const handler = await importHandler(
       namespaced("resendInvitation"),
       () => import("./resendInvitation.handler")
+    );
+    return handler(opts);
+  }),
+  createAttribute: authedProcedure.input(ZCreateAttributeInputSchema).mutation(async (opts) => {
+    const handler = await importHandler(
+      namespaced("createAttribute"),
+      () => import("./createAttribute.handler")
     );
     return handler(opts);
   }),

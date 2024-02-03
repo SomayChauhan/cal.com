@@ -326,6 +326,7 @@ model Team {
   createdAt            DateTime                @default(now())
   /// @zod.custom(imports.teamMetadataSchema)
   metadata             Json?
+  attributes           Json?
   theme                String?
   brandColor           String?
   darkBrandColor       String?

@@ -677,3 +677,30 @@ export const bookingSeatDataSchema = z.object({
   description: z.string().optional(),
   responses: bookingResponses,
 });
+
+export const AttributeType = {
+  MULTI_SELECT: "MULTI_SELECT",
+  RELATIONSHIP_PEOPLE: "RELATIONSHIP_PEOPLE",
+  RELATIONSHIP_TEAM: "RELATIONSHIP_TEAM",
+  SINGLE_SELECT: "SINGLE_SELECT",
+  TEXT: "TEXT",
+};
+
+export const ZAttributeTypeEnum = z.enum([
+  AttributeType.MULTI_SELECT,
+  AttributeType.RELATIONSHIP_PEOPLE,
+  AttributeType.RELATIONSHIP_TEAM,
+  AttributeType.SINGLE_SELECT,
+  AttributeType.TEXT,
+]);
+
+export type TAttributeType = z.infer<typeof ZAttributeTypeEnum>;
+
+export const teamAttributesSchema = z.array(
+  z.object({
+    name: z.string(),
+    type: ZAttributeTypeEnum,
+    allowEdit: z.boolean(),
+    options: z.array(z.string()).optional(),
+  })
+);

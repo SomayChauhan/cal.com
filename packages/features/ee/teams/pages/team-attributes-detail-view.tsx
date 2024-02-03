@@ -6,21 +6,14 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { AttributeType } from "@calcom/prisma/enums";
+import { AttributeType, AttributeTypeEnum } from "@calcom/prisma/zod-utils";
 import { Button, Meta, Form, TextField, SettingsToggle, Label, Select } from "@calcom/ui";
 
 import { getLayout } from "../../../settings/layouts/SettingsLayout";
 
 const teamProfileFormSchema = z.object({
   name: z.string(),
-  type: z.union([
-    z.literal(AttributeType.MULTI_SELECT),
-    z.literal(AttributeType.RELATIONSHIP_PEOPLE),
-    z.literal(AttributeType.RELATIONSHIP_TEAM),
-    z.literal(AttributeType.SINGLE_SELECT),
-    z.literal(AttributeType.TEXT),
-  ]),
-
+  type: AttributeTypeEnum,
   allowEdit: z.boolean(),
 });
 type FormValues = z.infer<typeof teamProfileFormSchema>;
