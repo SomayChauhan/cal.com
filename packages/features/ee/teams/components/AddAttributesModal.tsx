@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 import { useLocale } from "@calcom/lib/hooks/useLocale";
-import { AttributeType } from "@calcom/prisma/zod-utils";
+import { AttributeType } from "@calcom/prisma/enums";
 import { Button, Dialog, DialogContent, DialogFooter, Form, Label, Select, TextField } from "@calcom/ui";
 
 type AddAttributesModalProps = {

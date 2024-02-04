@@ -272,6 +272,7 @@ model User {
   profiles         Profile[]
   movedToProfileId Int?
   movedToProfile   Profile?  @relation("moved_to_profile", fields: [movedToProfileId], references: [id], onDelete: SetNull)
+  attributes UserAttribute[]
 
   @@unique([email])
   @@unique([email, username])
@@ -326,7 +327,6 @@ model Team {
   createdAt            DateTime                @default(now())
   /// @zod.custom(imports.teamMetadataSchema)
   metadata             Json?
-  attributes           Json?
   theme                String?
   brandColor           String?
   darkBrandColor       String?
@@ -347,8 +347,41 @@ model Team {
   instantMeetingTokens InstantMeetingToken[]
   orgProfiles          Profile[]
   pendingPayment       Boolean                 @default(false)
+  attributes           Attribute[]
 
   @@unique([slug, parentId])
+}
+
+enum AttributeType {
+  MULTI_SELECT
+  RELATIONSHIP_PEOPLE
+  RELATIONSHIP_TEAM
+  SINGLE_SELECT
+  TEXT
+}
+
+model Attribute {
+  id             Int             @id @default(autoincrement())
+  name           String
+  type           AttributeType
+  allowEdit      Boolean         @default(false)
+  hidden         Boolean         @default(false)
+  options        Json?
+  team           Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId         Int
+  userAttributes UserAttribute[]
+
+  @@index([teamId])
+}
+
+model UserAttribute {
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  attribute      Attribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  attributeId    Int
+  attributeValue String
+
+  @@id([userId, attributeId])
 }
 
 enum MembershipRole {

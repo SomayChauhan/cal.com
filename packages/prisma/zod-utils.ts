@@ -19,7 +19,7 @@ import type { FieldType as FormBuilderFieldType } from "@calcom/features/form-bu
 import { fieldsSchema as formBuilderFieldsSchema } from "@calcom/features/form-builder/schema";
 import { isSupportedTimeZone } from "@calcom/lib/date-fns";
 import { slugify } from "@calcom/lib/slugify";
-import { EventTypeCustomInputType } from "@calcom/prisma/enums";
+import { EventTypeCustomInputType, AttributeType } from "@calcom/prisma/enums";
 
 // Let's not import 118kb just to get an enum
 export enum Frequency {
@@ -678,14 +678,6 @@ export const bookingSeatDataSchema = z.object({
   responses: bookingResponses,
 });
 
-export const AttributeType = {
-  MULTI_SELECT: "MULTI_SELECT",
-  RELATIONSHIP_PEOPLE: "RELATIONSHIP_PEOPLE",
-  RELATIONSHIP_TEAM: "RELATIONSHIP_TEAM",
-  SINGLE_SELECT: "SINGLE_SELECT",
-  TEXT: "TEXT",
-};
-
 export const ZAttributeTypeEnum = z.enum([
   AttributeType.MULTI_SELECT,
   AttributeType.RELATIONSHIP_PEOPLE,
@@ -694,13 +686,7 @@ export const ZAttributeTypeEnum = z.enum([
   AttributeType.TEXT,
 ]);
 
-export type TAttributeType = z.infer<typeof ZAttributeTypeEnum>;
+export type TAttributeTypeEnum = z.infer<typeof ZAttributeTypeEnum>;
+export const ZTeamAttributeOptionsSchema = z.array(z.string()).optional();
 
-export const teamAttributesSchema = z.array(
-  z.object({
-    name: z.string(),
-    type: ZAttributeTypeEnum,
-    allowEdit: z.boolean(),
-    options: z.array(z.string()).optional(),
-  })
-);
+export type TTeamAttributeOptionsSchema = z.infer<typeof ZTeamAttributeOptionsSchema>;

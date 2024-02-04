@@ -1,52 +1,133 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useParamsWithFallback } from "@calcom/lib/hooks/useParamsWithFallback";
 import { MembershipRole } from "@calcom/prisma/enums";
+import { ZTeamAttributeOptionsSchema } from "@calcom/prisma/zod-utils";
 import type { RouterOutputs } from "@calcom/trpc/react";
 import { trpc } from "@calcom/trpc/react";
-import { Button, EmptyScreen, Meta, showToast } from "@calcom/ui";
-import { Plus, Loader } from "@calcom/ui/components/icon";
+import {
+  Badge,
+  Button,
+  ButtonGroup,
+  Dropdown,
+  DropdownItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  EmptyScreen,
+  Meta,
+  Switch,
+  Tooltip,
+  showToast,
+} from "@calcom/ui";
+import { Plus, Loader, UserX, Edit2, MoreHorizontal } from "@calcom/ui/components/icon";
 
 import { getLayout } from "../../../settings/layouts/SettingsLayout";
 import AddAttributesModal from "../components/AddAttributesModal";
 
 type Team = RouterOutputs["viewer"]["teams"]["get"];
+type Attribute = RouterOutputs["viewer"]["teams"]["get"]["attributes"][number];
 
 interface AttributesListProps {
   team: Team | undefined;
   setShowAddAttributesModal: (value: boolean) => void;
 }
 
-const checkIfExist = (comp: string, query: string) =>
-  comp.toLowerCase().replace(/\s+/g, "").includes(query.toLowerCase().replace(/\s+/g, ""));
+function AttributesListItem({ attribute }: { attribute: Attribute }) {
+  const { t } = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+  console.log("pathnamepathnamepathname: ", pathname);
+  const attributeOptions = ZTeamAttributeOptionsSchema.parse(attribute.options || []) || [];
+  return (
+    <li className="divide-subtle divide-y px-5">
+      <div className="my-4 flex justify-between">
+        <div className="flex w-full flex-col justify-between overflow-hidden sm:flex-row">
+          <div className="flex">
+            <div className="ms-3 inline-block overflow-hidden">
+              <div className="mb-1 flex">
+                <span className="text-default mr-1 text-sm font-bold leading-4">{attribute.name}</span>
+              </div>
+              <div className="text-default flex items-center">
+                <span className=" block text-sm" data-testid="member-email">
+                  {attribute.type}
+                </span>
+                {attributeOptions.length > 0 && (
+                  <>
+                    <span className="text-default mx-2 block">•</span>
+                    <span className=" block text-sm" data-testid="member-email">
+                      {attributeOptions}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-center">
+          {attribute.hidden && <Badge variant="gray">{t("hidden")}</Badge>}
+          <Tooltip content={true ? t("show_eventtype_on_profile") : t("hide_from_profile")}>
+            <div className="self-center rounded-md p-2">
+              <Switch
+                name="Hidden"
+                checked={!attribute.hidden}
+                onCheckedChange={() => {
+                  // setHiddenMutation.mutate({ id: type.id, hidden: !type.hidden });
+                }}
+              />
+            </div>
+          </Tooltip>
+          <ButtonGroup combined containerProps={{ className: "border-default" }}>
+            <Dropdown>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="radix-state-open:rounded-r-md"
+                  color="secondary"
+                  variant="icon"
+                  StartIcon={MoreHorizontal}
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>
+                  <DropdownItem
+                    type="button"
+                    onClick={() => router.push(`${pathname}/${attribute.id}`)}
+                    StartIcon={Edit2}>
+                    {t("edit")}
+                  </DropdownItem>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <DropdownItem
+                    type="button"
+                    // onClick={() => setShowDeleteModal(true)}
+                    color="destructive"
+                    StartIcon={UserX}>
+                    {t("remove")}
+                  </DropdownItem>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </Dropdown>
+          </ButtonGroup>
+        </div>
+      </div>
+    </li>
+  );
+}
 
 function AttributesList(props: AttributesListProps) {
-  const { team } = props;
   const { t } = useLocale();
-  const [query, setQuery] = useState<string>("");
 
-  const members = team?.members;
-  const membersList = members
-    ? members && query === ""
-      ? members
-      : members.filter((member) => {
-          const email = member.email ? checkIfExist(member.email, query) : false;
-          const username = member.username ? checkIfExist(member.username, query) : false;
-          const name = member.name ? checkIfExist(member.name, query) : false;
-
-          return email || username || name;
-        })
-    : undefined;
   return (
     <div className="flex flex-col gap-y-3">
-      {false && membersList?.length && team ? (
+      {props?.team?.attributes && props?.team?.attributes?.length > 0 ? (
         <ul className="divide-subtle border-subtle divide-y rounded-md border ">
-          {membersList.map((member) => {
-            return <></>;
+          {props.team.attributes.map((attribute, index) => {
+            return <AttributesListItem attribute={attribute} key={`${attribute.name}-${index}`} />;
           })}
         </ul>
       ) : (

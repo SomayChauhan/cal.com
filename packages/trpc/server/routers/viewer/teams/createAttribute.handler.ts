@@ -1,6 +1,5 @@
 import { isTeamAdmin } from "@calcom/lib/server/queries/teams";
 import prisma from "@calcom/prisma";
-import { teamAttributesSchema } from "@calcom/prisma/zod-utils";
 import { TRPCError } from "@calcom/trpc/server";
 import type { TrpcSessionUser } from "@calcom/trpc/server/trpc";
 
@@ -23,24 +22,15 @@ export const createAttributeHandler = async ({ ctx, input }: CreateInviteOptions
     }
   }
 
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
-    select: {
-      attributes: true,
-    },
-  });
-
-  const teamAttributes = teamAttributesSchema.parse(team?.attributes || []);
-  teamAttributes.push({
-    name: input.name,
-    type: input.type,
-    allowEdit: false,
-  });
-
-  await prisma.team.update({
-    where: { id: teamId },
+  await prisma.attribute.create({
     data: {
-      attributes: teamAttributes,
+      name: input.name,
+      type: input.type,
+      team: {
+        connect: {
+          id: teamId,
+        },
+      },
     },
   });
   return {};
