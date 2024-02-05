@@ -1,14 +1,16 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+import SkeletonLoaderTeamList from "@calcom/ee/teams/components/SkeletonloaderTeamList";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { useParamsWithFallback } from "@calcom/lib/hooks/useParamsWithFallback";
 import { AttributeType } from "@calcom/prisma/enums";
 import { ZAttributeTypeEnum } from "@calcom/prisma/zod-utils";
-import { Button, Meta, Form, TextField, SettingsToggle, Label, Select } from "@calcom/ui";
+import { trpc } from "@calcom/trpc/react";
+import { Button, Meta, TextField, SettingsToggle, Label, Select, showToast, Form } from "@calcom/ui";
 
 import { getLayout } from "../../../settings/layouts/SettingsLayout";
 
@@ -17,10 +19,25 @@ const teamProfileFormSchema = z.object({
   type: ZAttributeTypeEnum,
   allowEdit: z.boolean(),
 });
+
 type FormValues = z.infer<typeof teamProfileFormSchema>;
 
 const AttributeDetailView = () => {
   const { t } = useLocale();
+  const utils = trpc.useContext();
+
+  const params = useParamsWithFallback();
+
+  const teamId = Number(params.id);
+  const attributeId = Number(params.attributeId);
+
+  const {
+    data: team,
+    isPending: isTeamsLoading,
+    error: teamError,
+  } = trpc.viewer.teams.get.useQuery({ teamId });
+
+  const attribute = team?.attributes.find((attribute) => attribute.id === attributeId);
 
   const options = useMemo(
     () => [
@@ -32,59 +49,92 @@ const AttributeDetailView = () => {
     ],
     [t]
   );
-  const defaultValues: FormValues = {
-    name: "",
-    type: options[0].value,
-    allowEdit: false,
-  };
+  const updateAttributeMutation = trpc.viewer.teams.updateAttribute.useMutation();
 
-  const form = useForm({
+  const defaultValues: FormValues = useMemo(() => {
+    return {
+      name: attribute?.name || "",
+      type: attribute?.type || options[0].value,
+      allowEdit: attribute?.allowEdit || false,
+    };
+  }, [attribute, options]);
+
+  const formMethods = useForm({
     defaultValues,
-    resolver: zodResolver(teamProfileFormSchema),
   });
+  const {
+    formState: { isSubmitting, isDirty },
+    handleSubmit,
+    reset,
+  } = formMethods;
 
+  const isDisabled = isSubmitting || !isDirty;
+
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues]);
+
+  if (isTeamsLoading) {
+    return <SkeletonLoaderTeamList />;
+  }
   return (
     <>
       <Meta
-        title={t(`attributes/${"Skills"}`)}
+        title={t(`Attributes / ${attribute?.name}`)}
         backButton
         description={t("edit_attribute")}
         borderInShellHeader
         CTA={
           <Button
             type="button"
+            disabled={isDisabled}
             color="primary"
             className="ml-auto"
-            // onClick={() => setShowAddAttributesModal(true)}
-            data-testid="new-member-button">
+            onClick={handleSubmit((values) =>
+              updateAttributeMutation.mutate(
+                {
+                  teamId,
+                  attributeId,
+                  ...values,
+                },
+                {
+                  onSuccess: async (_data) => {
+                    await utils.viewer.teams.get.invalidate();
+                    showToast(t("attribute_updated_successfully"), "success");
+                  },
+                  onError: (error) => {
+                    showToast(error.message, "error");
+                  },
+                }
+              )
+            )}
+            data-testid="update-attribute-button">
             {t("save")}
           </Button>
         }
       />
-      <Form
-        form={form}
-        handleSubmit={(values) => {
-          console.log("values: ", values);
-        }}>
+      <Form form={formMethods}>
         <div className="border-subtle border-x px-4 py-8 sm:px-6">
           <Controller
-            control={form.control}
+            control={formMethods.control}
             name="name"
-            render={({ field: { value } }) => (
-              <div className="mt-8">
-                <TextField
-                  name="name"
-                  label={t("name")}
-                  value={value}
-                  onChange={(e) => {
-                    form.setValue("name", e?.target.value, { shouldDirty: true });
-                  }}
-                />
-              </div>
-            )}
+            render={({ field }) => {
+              return (
+                <div className="mt-8">
+                  <TextField
+                    name="name"
+                    label={t("name")}
+                    value={field.value}
+                    onChange={(e) => {
+                      formMethods.setValue("name", e?.target.value, { shouldDirty: true });
+                    }}
+                  />
+                </div>
+              );
+            }}
           />
           <Controller
-            control={form.control}
+            control={formMethods.control}
             name="type"
             render={({ field: { onChange } }) => (
               <div>
@@ -103,9 +153,8 @@ const AttributeDetailView = () => {
             )}
           />
         </div>
-
         <Controller
-          control={form.control}
+          control={formMethods.control}
           name="allowEdit"
           render={({ field: { value } }) => (
             <div className="mt-8">
@@ -114,7 +163,7 @@ const AttributeDetailView = () => {
                 description={t("allow_members_to_edit_description")}
                 checked={value}
                 onCheckedChange={(active) => {
-                  form.setValue("allowEdit", active);
+                  formMethods.setValue("allowEdit", active, { shouldDirty: true });
                 }}
                 toggleSwitchAtTheEnd
               />

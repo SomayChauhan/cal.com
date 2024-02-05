@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import SkeletonLoaderTeamList from "@calcom/ee/teams/components/SkeletonloaderTeamList";
 import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useParamsWithFallback } from "@calcom/lib/hooks/useParamsWithFallback";
@@ -42,7 +43,6 @@ function AttributesListItem({ attribute }: { attribute: Attribute }) {
   const { t } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  console.log("pathnamepathnamepathname: ", pathname);
   const attributeOptions = ZTeamAttributeOptionsSchema.parse(attribute.options || []) || [];
   return (
     <li className="divide-subtle divide-y px-5">
@@ -155,6 +155,8 @@ function AttributesList(props: AttributesListProps) {
 const AttributesListView = () => {
   const searchParams = useCompatSearchParams();
   const { t } = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const utils = trpc.useContext();
   const params = useParamsWithFallback();
@@ -175,13 +177,16 @@ const AttributesListView = () => {
     }
   );
 
-  console.log("tteamteamteameam: ", team);
   const isPending = isTeamsLoading;
 
   const createAttributeMutation = trpc.viewer.teams.createAttribute.useMutation();
 
   const isAdmin =
     team && (team.membership.role === MembershipRole.OWNER || team.membership.role === MembershipRole.ADMIN);
+
+  if (isPending) {
+    return <SkeletonLoaderTeamList />;
+  }
 
   return (
     <>
@@ -206,40 +211,33 @@ const AttributesListView = () => {
       />
       {!isPending && (
         <>
-          <div>
-            {((team?.isPrivate && isAdmin) || !team?.isPrivate) && (
-              <>
-                <AttributesList team={team} setShowAddAttributesModal={setShowAddAttributesModal} />
-              </>
-            )}
-          </div>
-          {showAddAttributesModal && team && (
-            <AddAttributesModal
-              isPending={createAttributeMutation.isPending}
-              isOpen={showAddAttributesModal}
-              onExit={() => setShowAddAttributesModal(false)}
-              onSubmit={(values, resetFields) => {
-                createAttributeMutation.mutate(
-                  {
-                    teamId,
-                    name: values.name,
-                    type: values.type,
+          <AttributesList team={team} setShowAddAttributesModal={setShowAddAttributesModal} />
+          <AddAttributesModal
+            isPending={createAttributeMutation.isPending}
+            isOpen={showAddAttributesModal}
+            onExit={() => setShowAddAttributesModal(false)}
+            onSubmit={(values, resetFields) => {
+              createAttributeMutation.mutate(
+                {
+                  teamId,
+                  name: values.name,
+                  type: values.type,
+                },
+                {
+                  onSuccess: async (data) => {
+                    await utils.viewer.teams.get.invalidate();
+                    resetFields();
+                    showToast(t("attribute_added_successfully"), "success");
+                    router.push(`${pathname}/${data.id}`);
+                    setShowAddAttributesModal(false);
                   },
-                  {
-                    onSuccess: async (data) => {
-                      await utils.viewer.teams.get.invalidate();
-                      setShowAddAttributesModal(false);
-                      resetFields();
-                      showToast(t("attribute_added_successfully"), "success");
-                    },
-                    onError: (error) => {
-                      showToast(error.message, "error");
-                    },
-                  }
-                );
-              }}
-            />
-          )}
+                  onError: (error) => {
+                    showToast(error.message, "error");
+                  },
+                }
+              );
+            }}
+          />
         </>
       )}
     </>

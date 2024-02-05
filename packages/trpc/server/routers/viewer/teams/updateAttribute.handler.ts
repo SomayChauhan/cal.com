@@ -3,16 +3,16 @@ import prisma from "@calcom/prisma";
 import { TRPCError } from "@calcom/trpc/server";
 import type { TrpcSessionUser } from "@calcom/trpc/server/trpc";
 
-import type { TCreateAttributeInputSchema } from "./createAttribute.schema";
+import type { TUpdateAttributeInputSchema } from "./updateAttribute.schema";
 
-type CreateAttributeOptions = {
+type UpdateAttributeOptions = {
   ctx: {
     user: NonNullable<TrpcSessionUser>;
   };
-  input: TCreateAttributeInputSchema;
+  input: TUpdateAttributeInputSchema;
 };
 
-export const createAttributeHandler = async ({ ctx, input }: CreateAttributeOptions) => {
+export const udpateAttributeHandler = async ({ ctx, input }: UpdateAttributeOptions) => {
   const { teamId } = input;
   const isOrgAdmin = ctx.user?.organization?.isOrgAdmin;
 
@@ -22,15 +22,17 @@ export const createAttributeHandler = async ({ ctx, input }: CreateAttributeOpti
     }
   }
 
-  const attribute = await prisma.attribute.create({
+  const attribute = await prisma.attribute.update({
+    where: {
+      id: input.attributeId,
+      teamId: input.teamId,
+    },
     data: {
       name: input.name,
       type: input.type,
-      team: {
-        connect: {
-          id: teamId,
-        },
-      },
+      options: input.options,
+      hidden: input.hidden,
+      allowEdit: input.allowEdit,
     },
   });
   return {
@@ -38,4 +40,4 @@ export const createAttributeHandler = async ({ ctx, input }: CreateAttributeOpti
   };
 };
 
-export default createAttributeHandler;
+export default udpateAttributeHandler;

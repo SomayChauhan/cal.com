@@ -31,14 +31,20 @@ export default function AddAttributesModal(props: AddAttributesModalProps) {
     [t]
   );
 
-  const addAttributesFormMethods = useForm<AddAttributesForm>();
+  const addAttributesFormMethods = useForm<AddAttributesForm>({
+    defaultValues: {
+      name: "",
+      type: options[0].value,
+    },
+  });
+
+  const watchType = addAttributesFormMethods.watch("type");
 
   const resetFields = () => {
     addAttributesFormMethods.reset();
     addAttributesFormMethods.setValue("name", "");
     addAttributesFormMethods.setValue("type", options[0].value);
   };
-
   return (
     <Dialog
       name="attributesModal"
@@ -100,7 +106,9 @@ export default function AddAttributesModal(props: AddAttributesModalProps) {
               color="primary"
               className="me-2 ms-2"
               data-testid="invite-new-member-button">
-              {t("confirm")}
+              {watchType === AttributeType.MULTI_SELECT || watchType === AttributeType.SINGLE_SELECT
+                ? t("continue")
+                : t("add")}
             </Button>
           </DialogFooter>
         </Form>

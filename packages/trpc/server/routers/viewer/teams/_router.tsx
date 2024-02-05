@@ -21,6 +21,7 @@ import { ZRemoveMemberInputSchema } from "./removeMember.schema";
 import { ZResendInvitationInputSchema } from "./resendInvitation.schema";
 import { ZSetInviteExpirationInputSchema } from "./setInviteExpiration.schema";
 import { ZUpdateInputSchema } from "./update.schema";
+import { ZUpdateAttributeInputSchema } from "./updateAttribute.schema";
 import { ZUpdateMembershipInputSchema } from "./updateMembership.schema";
 
 const NAMESPACE = "teams";
@@ -159,6 +160,13 @@ export const viewerTeamsRouter = router({
     const handler = await importHandler(
       namespaced("createAttribute"),
       () => import("./createAttribute.handler")
+    );
+    return handler(opts);
+  }),
+  updateAttribute: authedProcedure.input(ZUpdateAttributeInputSchema).mutation(async (opts) => {
+    const handler = await importHandler(
+      namespaced("updateAttribute"),
+      () => import("./updateAttribute.handler")
     );
     return handler(opts);
   }),
