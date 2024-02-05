@@ -8,7 +8,7 @@ import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useParamsWithFallback } from "@calcom/lib/hooks/useParamsWithFallback";
 import { MembershipRole } from "@calcom/prisma/enums";
-import { ZTeamAttributeOptionsSchema } from "@calcom/prisma/zod-utils";
+import { ZAttributeOptionSchema } from "@calcom/prisma/zod-utils";
 import type { RouterOutputs } from "@calcom/trpc/react";
 import { trpc } from "@calcom/trpc/react";
 import {
@@ -43,7 +43,7 @@ function AttributesListItem({ attribute }: { attribute: Attribute }) {
   const { t } = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const attributeOptions = ZTeamAttributeOptionsSchema.parse(attribute.options || []) || [];
+  const attributeOptions = ZAttributeOptionSchema.parse(attribute.options);
   return (
     <li className="divide-subtle divide-y px-5">
       <div className="my-4 flex justify-between">
@@ -57,11 +57,11 @@ function AttributesListItem({ attribute }: { attribute: Attribute }) {
                 <span className=" block text-sm" data-testid="member-email">
                   {attribute.type}
                 </span>
-                {attributeOptions.length > 0 && (
+                {attributeOptions && attributeOptions.length > 0 && (
                   <>
                     <span className="text-default mx-2 block">•</span>
                     <span className=" block text-sm" data-testid="member-email">
-                      {attributeOptions}
+                      {attributeOptions.length} Options
                     </span>
                   </>
                 )}

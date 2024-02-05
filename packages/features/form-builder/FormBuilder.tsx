@@ -295,7 +295,7 @@ export const FormBuilder = function FormBuilder({
   );
 };
 
-function Options({
+export function Options({
   label = "Options",
   value,
   // eslint-disable-next-line @typescript-eslint/no-empty-function

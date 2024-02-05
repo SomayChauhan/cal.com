@@ -1,12 +1,12 @@
 import { z } from "zod";
 
-import { ZAttributeTypeEnum, ZTeamAttributeOptionsSchema } from "@calcom/prisma/zod-utils";
+import { ZAttributeTypeEnum, ZAttributeOptionSchema } from "@calcom/prisma/zod-utils";
 
 export const ZCreateAttributeInputSchema = z.object({
   teamId: z.number(),
   name: z.string(),
   type: ZAttributeTypeEnum,
-  options: ZTeamAttributeOptionsSchema,
+  options: ZAttributeOptionSchema,
   hidden: z.boolean().optional(),
   allowEdit: z.boolean().optional(),
 });

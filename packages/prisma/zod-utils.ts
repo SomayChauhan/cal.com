@@ -687,6 +687,13 @@ export const ZAttributeTypeEnum = z.enum([
 ]);
 
 export type TAttributeTypeEnum = z.infer<typeof ZAttributeTypeEnum>;
-export const ZTeamAttributeOptionsSchema = z.array(z.string()).optional();
 
-export type TTeamAttributeOptionsSchema = z.infer<typeof ZTeamAttributeOptionsSchema>;
+export const ZAttributeOptionSchema = z
+  .array(
+    z.object({
+      label: z.string(),
+      value: z.string(),
+    })
+  )
+  .optional()
+  .nullable();

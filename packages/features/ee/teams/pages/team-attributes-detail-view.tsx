@@ -5,10 +5,11 @@ import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import SkeletonLoaderTeamList from "@calcom/ee/teams/components/SkeletonloaderTeamList";
+import { Options } from "@calcom/features/form-builder/FormBuilder";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { useParamsWithFallback } from "@calcom/lib/hooks/useParamsWithFallback";
 import { AttributeType } from "@calcom/prisma/enums";
-import { ZAttributeTypeEnum } from "@calcom/prisma/zod-utils";
+import { ZAttributeTypeEnum, ZAttributeOptionSchema } from "@calcom/prisma/zod-utils";
 import { trpc } from "@calcom/trpc/react";
 import { Button, Meta, TextField, SettingsToggle, Label, Select, showToast, Form } from "@calcom/ui";
 
@@ -18,6 +19,7 @@ const teamProfileFormSchema = z.object({
   name: z.string(),
   type: ZAttributeTypeEnum,
   allowEdit: z.boolean(),
+  options: ZAttributeOptionSchema,
 });
 
 type FormValues = z.infer<typeof teamProfileFormSchema>;
@@ -39,7 +41,7 @@ const AttributeDetailView = () => {
 
   const attribute = team?.attributes.find((attribute) => attribute.id === attributeId);
 
-  const options = useMemo(
+  const typeOptions = useMemo(
     () => [
       { value: AttributeType.TEXT, label: t("text") },
       { value: AttributeType.SINGLE_SELECT, label: t("single-select") },
@@ -54,10 +56,11 @@ const AttributeDetailView = () => {
   const defaultValues: FormValues = useMemo(() => {
     return {
       name: attribute?.name || "",
-      type: attribute?.type || options[0].value,
+      type: attribute?.type || typeOptions[0].value,
       allowEdit: attribute?.allowEdit || false,
+      options: ZAttributeOptionSchema.parse(attribute?.options),
     };
-  }, [attribute, options]);
+  }, [attribute, typeOptions]);
 
   const formMethods = useForm({
     defaultValues,
@@ -66,8 +69,10 @@ const AttributeDetailView = () => {
     formState: { isSubmitting, isDirty },
     handleSubmit,
     reset,
+    watch,
   } = formMethods;
 
+  const watchType = watch("type");
   const isDisabled = isSubmitting || !isDirty;
 
   useEffect(() => {
@@ -136,15 +141,16 @@ const AttributeDetailView = () => {
           <Controller
             control={formMethods.control}
             name="type"
-            render={({ field: { onChange } }) => (
+            render={({ field: { onChange, value } }) => (
               <div>
                 <Label className="text-emphasis font-medium" htmlFor="role">
                   {t("type")}
                 </Label>
                 <Select
                   id="type"
-                  defaultValue={options[0]}
-                  options={options}
+                  defaultValue={typeOptions[0]}
+                  options={typeOptions}
+                  value={typeOptions.find((opt) => opt.value === value)}
                   onChange={(val) => {
                     if (val) onChange(val.value);
                   }}
@@ -170,6 +176,15 @@ const AttributeDetailView = () => {
             </div>
           )}
         />
+
+        {watchType === AttributeType.MULTI_SELECT || watchType === AttributeType.SINGLE_SELECT ? (
+          <Controller
+            name="options"
+            render={({ field: { value, onChange } }) => {
+              return <Options onChange={onChange} value={value} className="mt-6" />;
+            }}
+          />
+        ) : null}
       </Form>
     </>
   );
