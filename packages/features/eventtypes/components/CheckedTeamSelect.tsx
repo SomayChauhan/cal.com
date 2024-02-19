@@ -2,12 +2,18 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { useFormContext } from "react-hook-form";
+import { components } from "react-select";
 import type { Props } from "react-select";
 
+import InviteLinkSettingsModal from "@calcom/ee/teams/components/InviteLinkSettingsModal";
+import MemberInvitationModal from "@calcom/ee/teams/components/MemberInvitationModal";
 import { classNames } from "@calcom/lib";
+import { useCompatSearchParams } from "@calcom/lib/hooks/useCompatSearchParams";
 import { useLocale } from "@calcom/lib/hooks/useLocale";
+import { trpc } from "@calcom/trpc/react";
 import {
   Avatar,
+  Badge,
   Button,
   Dialog,
   DialogClose,
@@ -16,9 +22,11 @@ import {
   Label,
   Select,
   Tooltip,
+  showToast,
 } from "@calcom/ui";
+import { Plus } from "@calcom/ui/components/icon";
 import { X } from "@calcom/ui/components/icon";
-import type { FormValues, Host } from "@calcom/web/pages/event-types/[type]";
+import type { EventTypeSetupProps, FormValues, Host } from "@calcom/web/pages/event-types/[type]";
 
 export type CheckedSelectOption = {
   avatar: string;
@@ -27,21 +35,44 @@ export type CheckedSelectOption = {
   priority?: number;
   isFixed?: boolean;
   disabled?: boolean;
+  pending?: boolean;
 };
 
 export const CheckedTeamSelect = ({
   options = [],
   value = [],
+  team,
+  onChange,
   ...props
 }: Omit<Props<CheckedSelectOption, true>, "value" | "onChange"> & {
   value?: readonly CheckedSelectOption[];
+  team: EventTypeSetupProps["team"];
   onChange: (value: readonly CheckedSelectOption[]) => void;
 }) => {
+  const searchParams = useCompatSearchParams();
+  const showDialog = searchParams?.get("inviteModal") === "true";
   const [priorityDialogOpen, setPriorityDialogOpen] = useState(false);
+  const [showMemberInvitationModal, setShowMemberInvitationModal] = useState(showDialog);
+  const [showInviteLinkSettingsModal, setInviteLinkSettingsModal] = useState(false);
   const [currentOption, setCurrentOption] = useState(value[0] ?? null);
 
-  const { t } = useLocale();
+  console.log("options: ", options);
+  const utils = trpc.useContext();
+
+  const { data: orgMembersNotInThisTeam, isPending: isOrgListLoading } =
+    trpc.viewer.organizations.getMembers.useQuery(
+      {
+        teamIdToExclude: team.id,
+        distinctUser: true,
+      },
+      {
+        enabled: !Number.isNaN(team.id),
+      }
+    );
+
+  const { t, i18n } = useLocale();
   const [animationRef] = useAutoAnimate<HTMLUListElement>();
+  const inviteMemberMutation = trpc.viewer.teams.inviteMember.useMutation();
 
   return (
     <>
@@ -49,9 +80,44 @@ export const CheckedTeamSelect = ({
         name={props.name}
         placeholder={props.placeholder || t("select")}
         isSearchable={true}
-        options={options}
+        options={[...options, { label: "add team member", value: "addNewTeamMember" }]}
         value={value}
         isMulti
+        components={{
+          Option: (props) => {
+            const { label, pending } = props.data;
+            if (label == "add team member") {
+              return (
+                <components.Option {...props}>
+                  <div className="flex gap-1">
+                    <Plus className="h-4 w-4" />
+                    {label}
+                  </div>
+                  {/* <Button StartIcon={Plus} color="secondary"> */}
+                  {/* </Button> */}
+                </components.Option>
+              );
+            }
+
+            return (
+              <components.Option {...props}>
+                <span>{label}</span>
+                {pending && (
+                  <Badge variant="orange" className="ml-2">
+                    {t("pending")}
+                  </Badge>
+                )}
+              </components.Option>
+            );
+          },
+        }}
+        onChange={(e) => {
+          if (e[e.length - 1].value == "addNewTeamMember") {
+            setShowMemberInvitationModal(true);
+          } else {
+            onChange(e);
+          }
+        }}
         {...props}
       />
       {/* This class name conditional looks a bit odd but it allows a seemless transition when using autoanimate
@@ -66,6 +132,11 @@ export const CheckedTeamSelect = ({
               className={`flex px-3 py-2 ${index === value.length - 1 ? "" : "border-subtle border-b"}`}>
               <Avatar size="sm" imageSrc={option.avatar} alt={option.label} />
               <p className="text-emphasis my-auto ms-3 text-sm">{option.label}</p>
+              {option.pending && (
+                <Badge variant="orange" className="ml-2">
+                  {t("pending")}
+                </Badge>
+              )}
               <div className="ml-auto flex items-center">
                 {option && !option.isFixed ? (
                   <Tooltip content={t("change_priority")}>
@@ -87,7 +158,7 @@ export const CheckedTeamSelect = ({
                 )}
 
                 <X
-                  onClick={() => props.onChange(value.filter((item) => item.value !== option.value))}
+                  onClick={() => onChange(value.filter((item) => item.value !== option.value))}
                   className="my-auto h-4 w-4"
                 />
               </div>
@@ -100,10 +171,78 @@ export const CheckedTeamSelect = ({
           isOpenDialog={priorityDialogOpen}
           setIsOpenDialog={setPriorityDialogOpen}
           option={currentOption}
-          onChange={props.onChange}
+          onChange={onChange}
         />
       ) : (
         <></>
+      )}
+
+      {showMemberInvitationModal && team && (
+        <MemberInvitationModal
+          isPending={inviteMemberMutation.isPending}
+          isOpen={showMemberInvitationModal}
+          members={team.members}
+          teamId={team.id}
+          orgMembers={orgMembersNotInThisTeam}
+          token={team.inviteToken?.token}
+          onExit={() => setShowMemberInvitationModal(false)}
+          onSubmit={(values, resetFields) => {
+            inviteMemberMutation.mutate(
+              {
+                teamId: team.id,
+                language: i18n.language,
+                role: values.role,
+                usernameOrEmail: values.emailOrUsername,
+              },
+              {
+                onSuccess: async (data) => {
+                  await utils.viewer.teams.get.invalidate();
+                  await utils.viewer.organizations.getMembers.invalidate();
+                  await utils.viewer.eventTypes.get.invalidate();
+
+                  setShowMemberInvitationModal(false);
+
+                  if (Array.isArray(data.usernameOrEmail)) {
+                    showToast(
+                      t("email_invite_team_bulk", {
+                        userCount: data.usernameOrEmail.length,
+                      }),
+                      "success"
+                    );
+                    resetFields();
+                  } else {
+                    showToast(
+                      t("email_invite_team", {
+                        email: data.usernameOrEmail,
+                      }),
+                      "success"
+                    );
+                  }
+                },
+                onError: (error) => {
+                  showToast(error.message, "error");
+                },
+              }
+            );
+          }}
+          onSettingsOpen={() => {
+            setShowMemberInvitationModal(false);
+            setInviteLinkSettingsModal(true);
+          }}
+        />
+      )}
+
+      {showInviteLinkSettingsModal && team?.inviteToken && (
+        <InviteLinkSettingsModal
+          isOpen={showInviteLinkSettingsModal}
+          teamId={team.id}
+          token={team.inviteToken.token}
+          expiresInDays={team.inviteToken.expiresInDays || undefined}
+          onExit={() => {
+            setInviteLinkSettingsModal(false);
+            setShowMemberInvitationModal(true);
+          }}
+        />
       )}
     </>
   );

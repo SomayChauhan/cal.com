@@ -1,6 +1,5 @@
 import { Trans } from "next-i18next";
 import Link from "next/link";
-import type { EventTypeSetupProps, FormValues, Host } from "pages/event-types/[type]";
 import { useEffect, useRef, useState } from "react";
 import type { ComponentProps, Dispatch, SetStateAction } from "react";
 import { Controller, useFormContext, useWatch } from "react-hook-form";
@@ -12,6 +11,7 @@ import ChildrenEventTypeSelect from "@calcom/features/eventtypes/components/Chil
 import { useLocale } from "@calcom/lib/hooks/useLocale";
 import { SchedulingType } from "@calcom/prisma/enums";
 import { Label, Select, SettingsToggle } from "@calcom/ui";
+import type { EventTypeSetupProps, FormValues, Host } from "@calcom/web/pages/event-types/[type]";
 
 interface IUserToValue {
   id: number | null;
@@ -19,6 +19,7 @@ interface IUserToValue {
   username: string | null;
   avatar: string;
   email: string;
+  pending: boolean;
 }
 
 type TeamMember = {
@@ -26,13 +27,18 @@ type TeamMember = {
   label: string;
   avatar: string;
   email: string;
+  pending: boolean;
 };
 
-const mapUserToValue = ({ id, name, username, avatar, email }: IUserToValue, pendingString: string) => ({
+const mapUserToValue = (
+  { id, name, username, avatar, email, pending }: IUserToValue,
+  pendingString: string
+) => ({
   value: `${id || ""}`,
-  label: `${name || email || ""}${!username ? ` (${pendingString})` : ""}`,
+  label: `${name || email || ""}`,
   avatar,
   email,
+  pending,
 });
 
 export const mapMemberToChildrenOption = (
@@ -149,6 +155,7 @@ const CheckedHostField = ({
   value,
   onChange,
   helperText,
+  team,
   ...rest
 }: {
   labelText?: string;
@@ -158,6 +165,7 @@ const CheckedHostField = ({
   onChange?: (options: Host[]) => void;
   options?: Options<CheckedSelectOption>;
   helperText?: React.ReactNode | string;
+  team: EventTypeSetupProps["team"];
 } & Omit<Partial<ComponentProps<typeof CheckedTeamSelect>>, "onChange" | "value">) => {
   return (
     <div className="flex flex-col rounded-md">
@@ -185,6 +193,7 @@ const CheckedHostField = ({
           controlShouldRenderValue={false}
           options={options}
           placeholder={placeholder}
+          team={team}
           {...rest}
         />
       </div>
@@ -211,6 +220,7 @@ const FixedHosts = ({
   assignAllTeamMembers,
   setAssignAllTeamMembers,
   isRoundRobinEvent = false,
+  team,
 }: {
   value: Host[];
   onChange: (hosts: Host[]) => void;
@@ -218,6 +228,7 @@ const FixedHosts = ({
   assignAllTeamMembers: boolean;
   setAssignAllTeamMembers: Dispatch<SetStateAction<boolean>>;
   isRoundRobinEvent?: boolean;
+  team: EventTypeSetupProps["team"];
 }) => {
   const { t } = useLocale();
   const { getValues, setValue } = useFormContext<FormValues>();
@@ -254,6 +265,7 @@ const FixedHosts = ({
                   { shouldDirty: true }
                 )
               }
+              team={team}
             />
           </div>
         </>
@@ -295,6 +307,7 @@ const FixedHosts = ({
                   { shouldDirty: true }
                 )
               }
+              team={team}
             />
           </div>
         </SettingsToggle>
@@ -312,6 +325,7 @@ const AddMembersWithSwitch = ({
   automaticAddAllEnabled,
   onActive,
   isFixed,
+  team,
 }: {
   value: Host[];
   onChange: (hosts: Host[]) => void;
@@ -321,6 +335,7 @@ const AddMembersWithSwitch = ({
   automaticAddAllEnabled: boolean;
   onActive: () => void;
   isFixed: boolean;
+  team: EventTypeSetupProps["team"];
 }) => {
   const { t } = useLocale();
   const { setValue } = useFormContext<FormValues>();
@@ -347,6 +362,7 @@ const AddMembersWithSwitch = ({
             isFixed={isFixed}
             options={teamMembers.sort(sortByLabel)}
             placeholder={t("add_attendees")}
+            team={team}
           />
         ) : (
           <></>
@@ -362,12 +378,14 @@ const RoundRobinHosts = ({
   onChange,
   assignAllTeamMembers,
   setAssignAllTeamMembers,
+  team,
 }: {
   value: Host[];
   onChange: (hosts: Host[]) => void;
   teamMembers: TeamMember[];
   assignAllTeamMembers: boolean;
   setAssignAllTeamMembers: Dispatch<SetStateAction<boolean>>;
+  team: EventTypeSetupProps["team"];
 }) => {
   const { t } = useLocale();
 
@@ -401,6 +419,7 @@ const RoundRobinHosts = ({
               { shouldDirty: true }
             )
           }
+          team={team}
         />
       </div>
     </div>
@@ -444,10 +463,12 @@ const Hosts = ({
   teamMembers,
   assignAllTeamMembers,
   setAssignAllTeamMembers,
+  team,
 }: {
   teamMembers: TeamMember[];
   assignAllTeamMembers: boolean;
   setAssignAllTeamMembers: Dispatch<SetStateAction<boolean>>;
+  team: EventTypeSetupProps["team"];
 }) => {
   const { t } = useLocale();
   const {
@@ -491,6 +512,7 @@ const Hosts = ({
               onChange={onChange}
               assignAllTeamMembers={assignAllTeamMembers}
               setAssignAllTeamMembers={setAssignAllTeamMembers}
+              team={team}
             />
           ),
           ROUND_ROBIN: (
@@ -504,6 +526,7 @@ const Hosts = ({
                 assignAllTeamMembers={assignAllTeamMembers}
                 setAssignAllTeamMembers={setAssignAllTeamMembers}
                 isRoundRobinEvent={true}
+                team={team}
               />
               <RoundRobinHosts
                 teamMembers={teamMembers}
@@ -517,6 +540,7 @@ const Hosts = ({
                 }}
                 assignAllTeamMembers={assignAllTeamMembers}
                 setAssignAllTeamMembers={setAssignAllTeamMembers}
+                team={team}
               />
             </>
           ),
@@ -553,9 +577,11 @@ export const EventTeamTab = ({
   ];
   const pendingMembers = (member: (typeof teamMembers)[number]) =>
     !!eventType.team?.parentId || !!member.username;
+  console.log("teamMembers: ", teamMembers);
   const teamMembersOptions = teamMembers
-    .filter(pendingMembers)
+    // .filter(pendingMembers)
     .map((member) => mapUserToValue(member, t("pending")));
+  console.log("teamMembersOptions: ", teamMembersOptions);
   const childrenEventTypeOptions = teamMembers.filter(pendingMembers).map((member) => {
     return mapMemberToChildrenOption(
       { ...member, eventTypes: member.eventTypes.filter((et) => et !== eventType.slug) },
@@ -603,6 +629,7 @@ export const EventTeamTab = ({
             assignAllTeamMembers={assignAllTeamMembers}
             setAssignAllTeamMembers={setAssignAllTeamMembers}
             teamMembers={teamMembersOptions}
+            team={team}
           />
         </>
       )}

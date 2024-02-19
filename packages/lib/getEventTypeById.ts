@@ -391,7 +391,7 @@ export default async function getEventTypeById({
   const isOrgEventType = !!eventTypeObject.team?.parentId;
   const teamMembers = eventTypeObject.team
     ? eventTeamMembershipsWithUserProfile
-        .filter((member) => member.accepted || isOrgEventType)
+        // .filter((member) => member.accepted || isOrgEventType)
         .map((member) => {
           const user: typeof member.user & { avatar: string } = {
             ...member.user,
@@ -402,6 +402,7 @@ export default async function getEventTypeById({
             profileId: user.profile.id,
             eventTypes: user.eventTypes.map((evTy) => evTy.slug),
             membership: member.role,
+            pending: !(member.accepted || isOrgEventType),
           };
         })
     : [];
